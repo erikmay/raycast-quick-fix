@@ -1,8 +1,8 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "quick-fix-codex",
-  "title": "Quick Fix (Codex)",
-  "description": "Fix spelling and grammar of the selected text in any app, powered by the pi CLI with Codex models (uses your ChatGPT subscription, no API key needed).",
+  "title": "Quick Fix (Gemini)",
+  "description": "Fix spelling and grammar of selected text with Gemini 3.8 Flash through a strictly routed OpenRouter request.",
   "icon": "quick-fix-icon.png",
   "author": "erikmay",
   "categories": [
@@ -19,55 +19,11 @@
   ],
   "preferences": [
     {
-      "name": "piPath",
-      "title": "Pi CLI Path",
-      "description": "Absolute path to the pi binary.",
-      "type": "textfield",
-      "default": "/Users/erikmay/.bun/bin/pi",
+      "name": "openRouterApiKey",
+      "title": "OpenRouter API Key",
+      "description": "Used only for strict Google AI Studio requests through OpenRouter.",
+      "type": "password",
       "required": true
-    },
-    {
-      "name": "model",
-      "title": "Model",
-      "description": "Model ID for the openai-codex provider (see: pi --list-models).",
-      "type": "textfield",
-      "default": "gpt-5.6-luna",
-      "required": true
-    },
-    {
-      "name": "thinking",
-      "title": "Thinking Level",
-      "description": "Lower is faster. 'off' is ideal for spelling/grammar fixes.",
-      "type": "dropdown",
-      "default": "off",
-      "required": true,
-      "data": [
-        {
-          "title": "Off (fastest)",
-          "value": "off"
-        },
-        {
-          "title": "Minimal",
-          "value": "minimal"
-        },
-        {
-          "title": "Low",
-          "value": "low"
-        },
-        {
-          "title": "Medium",
-          "value": "medium"
-        }
-      ]
-    },
-    {
-      "name": "fastMode",
-      "title": "OpenAI Fast Mode",
-      "label": "Request priority service tier (fast mode)",
-      "description": "Sends service_tier=priority with each request, like the Codex fast mode toggle.",
-      "type": "checkbox",
-      "default": true,
-      "required": false
     }
   ],
   "dependencies": {

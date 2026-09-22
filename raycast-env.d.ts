@@ -8,14 +8,8 @@
 /* eslint-disable @typescript-eslint/ban-types */
 
 type ExtensionPreferences = {
-  /** Pi CLI Path - Absolute path to the pi binary. */
-  "piPath": string,
-  /** Model - Model ID for the openai-codex provider (see: pi --list-models). */
-  "model": string,
-  /** Thinking Level - Lower is faster. 'off' is ideal for spelling/grammar fixes. */
-  "thinking": "off" | "minimal" | "low" | "medium",
-  /** OpenAI Fast Mode - Sends service_tier=priority with each request, like the Codex fast mode toggle. */
-  "fastMode": boolean
+  /** OpenRouter API Key - Used only for strict Google AI Studio requests through OpenRouter. */
+  "openRouterApiKey": string
 }
 
 /** Preferences accessible in all the extension's commands */

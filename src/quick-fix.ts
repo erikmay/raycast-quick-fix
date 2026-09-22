@@ -1,24 +1,25 @@
-import {
-  Clipboard,
-  environment,
-  getPreferenceValues,
-  getSelectedText,
-  showHUD,
-} from "@raycast/api";
-import { spawn, type ChildProcess } from "node:child_process";
-import { tmpdir } from "node:os";
+import { Clipboard, environment, getPreferenceValues, getSelectedText, showHUD } from "@raycast/api";
+import { spawn } from "node:child_process";
 import { join } from "node:path";
 
 interface Preferences {
-  piPath: string;
-  model: string;
-  thinking: string;
-  fastMode: boolean;
+  openRouterApiKey: string;
 }
 
-// Raycast's original "fix-spelling-grammar" prompt template, extracted verbatim
-// from the app bundle (register-ai-service-*.js). Sent as the user message with
-// a plain system prompt, matching the original's behavior.
+interface OpenRouterResponse {
+  provider?: string;
+  choices?: Array<{
+    finish_reason?: string | null;
+    message?: { content?: string };
+  }>;
+  error?: { message?: string };
+}
+
+const MODEL = "google/gemini-3.8-flash";
+const PROVIDER = "Google AI Studio";
+
+// Raycast's original "fix-spelling-grammar" prompt, extended with
+// preservation rules found necessary during the bilingual evaluation.
 const PROMPT_TEMPLATE = `Act as a spelling corrector and improver. Reply only with the rewritten text and nothing else.
 
 Strictly follow these rules:
@@ -27,6 +28,13 @@ Strictly follow these rules:
 - NEVER surround the rewritten text with quotes
 - Don't replace urls with markdown links
 - Don't change emojis
+- Make the smallest possible edits needed for correctness
+- Do not paraphrase, formalize, translate, or alter typographic style
+- Never replace a correct word or expand a colloquial contraction
+- Correct punctuation around direct quotations without changing quote characters
+- Preserve meaning, tone, and line breaks
+- Treat every URL and emoji as an immutable string
+- If the text is already correct, return it unchanged
 
 Text to rewrite:
 {selection}
@@ -80,95 +88,140 @@ async function selectAll(): Promise<void> {
   await new Promise((r) => setTimeout(r, 120));
 }
 
-async function captureText(): Promise<string> {
+type CapturedText = { text: string; selectionReady?: Promise<void> };
+
+async function readFocusedText(): Promise<{ kind: "selected" | "field"; text: string } | null> {
+  return new Promise((resolve) => {
+    const child = spawn("/usr/bin/osascript", [
+      "-l",
+      "JavaScript",
+      join(environment.assetsPath, "read-focused-text.js"),
+    ], { timeout: 1_500 });
+    let output = "";
+    child.stdout.on("data", (chunk) => (output += chunk));
+    child.on("error", () => resolve(null));
+    child.on("close", (code) => {
+      if (code !== 0) return resolve(null);
+      try {
+        const result = JSON.parse(output) as { kind?: string; text?: string };
+        if ((result.kind === "selected" || result.kind === "field") && result.text?.trim()) {
+          resolve({ kind: result.kind, text: result.text });
+        } else {
+          resolve(null);
+        }
+      } catch {
+        resolve(null);
+      }
+    });
+  });
+}
+
+async function captureText(): Promise<CapturedText> {
+  const focused = await readFocusedText();
+  if (focused?.kind === "selected") return { text: focused.text };
+  if (focused?.kind === "field") {
+    const selectionReady = selectAll();
+    selectionReady.catch(() => {});
+    return { text: focused.text, selectionReady };
+  }
+
   try {
     const selected = await getSelectedText();
-    if (selected.trim()) return selected;
+    if (selected.trim()) return { text: selected };
   } catch {
     // fall through to select-all
   }
   await selectAll();
   const selected = await getSelectedText();
   if (!selected.trim()) throw new Error("No text found");
-  return selected;
+  return { text: selected };
 }
 
-// Raycast strips accidental markdown code fences from the model output.
 function stripCodeFences(text: string): string {
-  const match = /^```(?:[a-z]*)?\s*([\s\S]*?)\n?```$/i.exec(text.trim());
-  return match?.[1] !== undefined ? match[1].trim() : text.trim();
+  const trimmed = text.trim();
+  const match = /^```(?:[a-z]*)?\s*([\s\S]*?)\n?```$/i.exec(trimmed);
+  return (match?.[1] ?? trimmed).trim();
 }
 
-// Spawn pi immediately so its startup overlaps with reading the selection;
-// the prompt is streamed to stdin once the text is available.
-function startPi(prefs: Preferences): { child: ChildProcess; result: Promise<string> } {
-  const child = spawn(
-    prefs.piPath,
-    [
-      "--offline",
-      "--provider",
-      "openai-codex",
-      "--model",
-      prefs.model,
-      "--thinking",
-      prefs.thinking,
-      "-p",
-      "--no-session",
-      "--no-tools",
-      "--no-extensions",
-      // --no-extensions disables discovery only; explicit -e paths still load
-      ...(prefs.fastMode ? ["-e", join(environment.assetsPath, "pi-fast.ts")] : []),
-      "--no-skills",
-      "--no-context-files",
-      "--no-prompt-templates",
-      "--no-themes",
-      "--system-prompt",
-      SYSTEM_PROMPT,
-    ],
-    { stdio: ["pipe", "pipe", "pipe"], timeout: 45_000, cwd: tmpdir() },
-  );
-  const result = new Promise<string>((resolve, reject) => {
-    let stdout = "";
-    let stderr = "";
-    child.stdout?.on("data", (chunk) => (stdout += chunk));
-    child.stderr?.on("data", (chunk) => (stderr += chunk));
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) resolve(stdout);
-      else reject(new Error(`pi exited with ${code}: ${stderr.slice(-300)}`));
-    });
+function assertPreservedTokens(original: string, fixed: string): void {
+  const urls = original.match(/https?:\/\/[^\s)\]]+/g) ?? [];
+  const fixedUrls = fixed.match(/https?:\/\/[^\s)\]]+/g) ?? [];
+  const emojis = original.match(/\p{Extended_Pictographic}/gu) ?? [];
+  const fixedEmojis = fixed.match(/\p{Extended_Pictographic}/gu) ?? [];
+  if (JSON.stringify(urls) !== JSON.stringify(fixedUrls)) throw new Error("The model changed a URL");
+  if (JSON.stringify(emojis) !== JSON.stringify(fixedEmojis)) throw new Error("The model changed an emoji");
+  if (/\[[^\]]+\]\(https?:\/\//.test(fixed)) throw new Error("The model added a Markdown link");
+}
+
+async function fixText(apiKey: string, text: string): Promise<string> {
+  // Leave room for a correction near the input size plus mandatory hidden reasoning.
+  // The provider charges actual output, not this ceiling.
+  const maxTokens = Math.min(65_536, Math.max(4_096, Math.ceil(text.length / 2) + 2_048));
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://github.com/erikmay/raycast-quick-fix",
+      "X-Title": "Raycast Quick Fix",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: PROMPT_TEMPLATE.replace("{selection}", () => text) },
+      ],
+      max_tokens: maxTokens,
+      reasoning: { effort: "minimal", exclude: true },
+      provider: {
+        order: ["google-ai-studio"],
+        allow_fallbacks: false,
+        require_parameters: true,
+        data_collection: "deny",
+      },
+    }),
+    signal: AbortSignal.timeout(45_000),
   });
-  result.catch(() => {}); // avoid unhandled rejection if capture fails first
-  return { child, result };
+  const result = (await response.json()) as OpenRouterResponse;
+  if (!response.ok) throw new Error(result.error?.message ?? `OpenRouter returned HTTP ${response.status}`);
+  if (result.provider !== PROVIDER) throw new Error(`Unexpected inference provider: ${result.provider ?? "unknown"}`);
+  const choice = result.choices?.[0];
+  if (choice?.finish_reason === "length") throw new Error("The model response was truncated");
+  if (choice?.finish_reason !== "stop") throw new Error("The model response was incomplete");
+  const fixed = stripCodeFences(choice.message?.content ?? "");
+  if (!fixed) throw new Error("The model returned an empty response");
+  assertPreservedTokens(text, fixed);
+  return fixed;
 }
 
 export default async function main() {
   const prefs = getPreferenceValues<Preferences>();
-
   const spinner = startSpinner("Quick fixing…");
-  const pi = startPi(prefs);
 
-  let text: string;
+  let captured: CapturedText;
   try {
-    text = await captureText();
+    captured = await captureText();
   } catch {
-    pi.child.kill();
     spinner.stop();
     await showHUD("❌ No text found");
     return;
   }
 
-  // replace with a function, like Raycast does, so "$" in the text
-  // isn't treated as a replacement pattern
-  pi.child.stdin?.end(PROMPT_TEMPLATE.replace("{selection}", () => text));
-
   try {
-    const fixed = stripCodeFences(await pi.result);
-    if (!fixed) throw new Error("pi returned an empty response");
+    const { text, selectionReady } = captured;
+    const boundary = /^(\s*)([\s\S]*?)(\s*)$/.exec(text);
+    if (!boundary?.[2]) throw new Error("No text found");
+    const fixedCore = await fixText(prefs.openRouterApiKey, boundary[2]);
+    const fixed = `${boundary[1]}${fixedCore}${boundary[3]}`;
+    if (selectionReady) await selectionReady;
 
     spinner.stop();
+    if (fixed === text) {
+      await showHUD("✓ Already correct");
+      return;
+    }
     await Clipboard.paste(fixed);
-    await showHUD(fixed === text.trim() ? "✓ Already correct" : "✓ Quick fixed");
+    await showHUD("✓ Quick fixed");
   } catch (error) {
     spinner.stop();
     const message = error instanceof Error ? error.message : String(error);
