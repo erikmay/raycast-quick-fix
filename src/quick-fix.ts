@@ -4,6 +4,9 @@ import { join } from "node:path";
 
 interface Preferences {
   openRouterApiKey: string;
+  model: string;
+  providerSlug: string;
+  reasoningEffort: "automatic" | "minimal" | "low" | "medium" | "high";
 }
 
 interface OpenRouterResponse {
@@ -15,8 +18,8 @@ interface OpenRouterResponse {
   error?: { message?: string };
 }
 
-const MODEL = "google/gemini-3.8-flash";
-const PROVIDER = "Google AI Studio";
+const DEFAULT_MODEL = "google/gemini-3.8-flash";
+const DEFAULT_PROVIDER_SLUG = "google-ai-studio";
 
 // Raycast's original "fix-spelling-grammar" prompt, extended with
 // preservation rules found necessary during the bilingual evaluation.
@@ -153,28 +156,40 @@ function assertPreservedTokens(original: string, fixed: string): void {
   if (/\[[^\]]+\]\(https?:\/\//.test(fixed)) throw new Error("The model added a Markdown link");
 }
 
-async function fixText(apiKey: string, text: string): Promise<string> {
+async function fixText(prefs: Preferences, text: string): Promise<string> {
+  const model = prefs.model.trim();
+  const providerSlug = prefs.providerSlug.trim();
+  if (!model || !providerSlug) throw new Error("Set a model and provider in Raycast preferences");
+  if (!/^[a-z0-9-]+$/.test(providerSlug)) throw new Error("Invalid OpenRouter provider slug");
+
+  let reasoningEffort: Exclude<Preferences["reasoningEffort"], "automatic"> | undefined;
+  if (prefs.reasoningEffort === "automatic") {
+    reasoningEffort = model === DEFAULT_MODEL ? "minimal" : undefined;
+  } else {
+    reasoningEffort = prefs.reasoningEffort;
+  }
+
   // Leave room for a correction near the input size plus mandatory hidden reasoning.
   // The provider charges actual output, not this ceiling.
   const maxTokens = Math.min(65_536, Math.max(4_096, Math.ceil(text.length / 2) + 2_048));
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${prefs.openRouterApiKey}`,
       "Content-Type": "application/json",
       "HTTP-Referer": "https://github.com/erikmay/raycast-quick-fix",
       "X-Title": "Raycast Quick Fix",
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: PROMPT_TEMPLATE.replace("{selection}", () => text) },
       ],
       max_tokens: maxTokens,
-      reasoning: { effort: "minimal", exclude: true },
+      ...(reasoningEffort ? { reasoning: { effort: reasoningEffort, exclude: true } } : {}),
       provider: {
-        order: ["google-ai-studio"],
+        only: [providerSlug],
         allow_fallbacks: false,
         require_parameters: true,
         data_collection: "deny",
@@ -184,7 +199,9 @@ async function fixText(apiKey: string, text: string): Promise<string> {
   });
   const result = (await response.json()) as OpenRouterResponse;
   if (!response.ok) throw new Error(result.error?.message ?? `OpenRouter returned HTTP ${response.status}`);
-  if (result.provider !== PROVIDER) throw new Error(`Unexpected inference provider: ${result.provider ?? "unknown"}`);
+  if (providerSlug === DEFAULT_PROVIDER_SLUG && result.provider !== "Google AI Studio") {
+    throw new Error(`Unexpected inference provider: ${result.provider ?? "unknown"}`);
+  }
   const choice = result.choices?.[0];
   if (choice?.finish_reason === "length") throw new Error("The model response was truncated");
   if (choice?.finish_reason !== "stop") throw new Error("The model response was incomplete");
@@ -211,7 +228,7 @@ export default async function main() {
     const { text, selectionReady } = captured;
     const boundary = /^(\s*)([\s\S]*?)(\s*)$/.exec(text);
     if (!boundary?.[2]) throw new Error("No text found");
-    const fixedCore = await fixText(prefs.openRouterApiKey, boundary[2]);
+    const fixedCore = await fixText(prefs, boundary[2]);
     const fixed = `${boundary[1]}${fixedCore}${boundary[3]}`;
     if (selectionReady) await selectionReady;
 

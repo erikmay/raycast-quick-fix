@@ -1,8 +1,8 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "quick-fix-codex",
-  "title": "Quick Fix (Gemini)",
-  "description": "Fix spelling and grammar of selected text with Gemini 3.8 Flash through a strictly routed OpenRouter request.",
+  "title": "Quick Fix (OpenRouter)",
+  "description": "Fix spelling and grammar of selected text with your chosen OpenRouter model and provider.",
   "icon": "quick-fix-icon.png",
   "author": "erikmay",
   "categories": [
@@ -21,9 +21,40 @@
     {
       "name": "openRouterApiKey",
       "title": "OpenRouter API Key",
-      "description": "Used only for strict Google AI Studio requests through OpenRouter.",
+      "description": "Used to send text to your selected model and provider through OpenRouter.",
       "type": "password",
       "required": true
+    },
+    {
+      "name": "model",
+      "title": "Model",
+      "description": "OpenRouter model ID, such as google/gemini-3.8-flash. Check openrouter.ai/models for available IDs.",
+      "type": "textfield",
+      "default": "google/gemini-3.8-flash",
+      "required": true
+    },
+    {
+      "name": "providerSlug",
+      "title": "Provider Slug",
+      "description": "Allow only this OpenRouter provider. Find its slug on the model's Providers page; requests fail if it cannot serve the model.",
+      "type": "textfield",
+      "default": "google-ai-studio",
+      "required": true
+    },
+    {
+      "name": "reasoningEffort",
+      "title": "Reasoning Effort",
+      "description": "Automatic keeps minimal reasoning for the default Gemini model and uses the model's default otherwise.",
+      "type": "dropdown",
+      "default": "automatic",
+      "required": true,
+      "data": [
+        { "title": "Automatic", "value": "automatic" },
+        { "title": "Minimal", "value": "minimal" },
+        { "title": "Low", "value": "low" },
+        { "title": "Medium", "value": "medium" },
+        { "title": "High", "value": "high" }
+      ]
     }
   ],
   "dependencies": {
