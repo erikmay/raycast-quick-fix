@@ -15,6 +15,12 @@
       "title": "Quick Fix Selected Text",
       "description": "Fixes spelling and grammar of the selected text and pastes the corrected version back in place.",
       "mode": "no-view"
+    },
+    {
+      "name": "quick-fix-submit",
+      "title": "Quick Fix and Submit",
+      "description": "Fixes the selected text, pastes it back, and presses Return to send it, for example a chat message.",
+      "mode": "no-view"
     }
   ],
   "preferences": [
@@ -26,20 +32,22 @@
       "required": true
     },
     {
-      "name": "model",
+      "name": "openRouterModel",
       "title": "Model",
       "description": "OpenRouter model ID, such as google/gemini-3.8-flash. Check openrouter.ai/models for available IDs.",
       "type": "textfield",
+      "placeholder": "google/gemini-3.8-flash",
       "default": "google/gemini-3.8-flash",
-      "required": true
+      "required": false
     },
     {
       "name": "providerSlug",
       "title": "Provider Slug",
       "description": "Allow only this OpenRouter provider. Find its slug on the model's Providers page; requests fail if it cannot serve the model.",
       "type": "textfield",
+      "placeholder": "google-ai-studio",
       "default": "google-ai-studio",
-      "required": true
+      "required": false
     },
     {
       "name": "reasoningEffort",
@@ -47,7 +55,7 @@
       "description": "Automatic keeps minimal reasoning for the default Gemini model and uses the model's default otherwise.",
       "type": "dropdown",
       "default": "automatic",
-      "required": true,
+      "required": false,
       "data": [
         { "title": "Automatic", "value": "automatic" },
         { "title": "Minimal", "value": "minimal" },

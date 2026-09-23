@@ -19,7 +19,7 @@ bun install
 bun run dev   # imports the extension into Raycast, Ctrl+C afterwards
 ```
 
-Enter your OpenRouter API key in the extension's password preference. Assign a hotkey to "Quick Fix Selected Text" in Raycast Settings → Extensions. Do not put the key in source files; Raycast does not read a project `.env` at runtime.
+Enter your OpenRouter API key in the extension's password preference. The model, provider, and reasoning effort are optional and use the defaults below when left blank. Assign a hotkey to "Quick Fix Selected Text" in Raycast Settings → Extensions. "Quick Fix and Submit" does the same and then presses Return to send the text, for example a chat message. Some apps insert a line break instead. Do not put the key in source files; Raycast does not read a project `.env` at runtime.
 
 ## Choose a model
 

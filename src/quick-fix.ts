@@ -4,9 +4,9 @@ import { join } from "node:path";
 
 interface Preferences {
   openRouterApiKey: string;
-  model: string;
-  providerSlug: string;
-  reasoningEffort: "automatic" | "minimal" | "low" | "medium" | "high";
+  openRouterModel?: string;
+  providerSlug?: string;
+  reasoningEffort?: "automatic" | "minimal" | "low" | "medium" | "high";
 }
 
 interface OpenRouterResponse {
@@ -78,17 +78,28 @@ function startSpinner(title: string): { stop: () => void } {
 // Same fallback Raycast's Quick Fix uses: if nothing is selected, select the
 // whole focused field (Cmd+A) and read the selection again.
 async function selectAll(): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn("/usr/bin/osascript", [
-      "-e",
-      'tell application "System Events" to keystroke "a" using command down',
-    ]);
+  await systemEvents('keystroke "a" using command down');
+  await new Promise((r) => setTimeout(r, 120));
+}
+
+function systemEvents(command: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn("/usr/bin/osascript", ["-e", `tell application "System Events" to ${command}`]);
     child.on("error", reject);
     child.on("close", (code) =>
       code === 0 ? resolve() : reject(new Error(`osascript exited with ${code}`)),
     );
   });
-  await new Promise((r) => setTimeout(r, 120));
+}
+
+// Press Return to send the text, for example a chat message. When nothing was
+// pasted, the text can still be selected, so first move the cursor to the end
+// of the selection. Otherwise Return would replace the text in most editors.
+async function submit(collapseSelection: boolean): Promise<void> {
+  // Give the app time to insert the pasted text before it receives Return.
+  await new Promise((r) => setTimeout(r, 150));
+  if (collapseSelection) await systemEvents("key code 124");
+  await systemEvents("key code 36");
 }
 
 type CapturedText = { text: string; selectionReady?: Promise<void> };
@@ -157,13 +168,14 @@ function assertPreservedTokens(original: string, fixed: string): void {
 }
 
 async function fixText(prefs: Preferences, text: string): Promise<string> {
-  const model = prefs.model.trim();
-  const providerSlug = prefs.providerSlug.trim();
-  if (!model || !providerSlug) throw new Error("Set a model and provider in Raycast preferences");
+  const apiKey = prefs.openRouterApiKey?.trim();
+  if (!apiKey) throw new Error("Set your OpenRouter API key in Raycast preferences");
+  const model = prefs.openRouterModel?.trim() || DEFAULT_MODEL;
+  const providerSlug = prefs.providerSlug?.trim() || DEFAULT_PROVIDER_SLUG;
   if (!/^[a-z0-9-]+$/.test(providerSlug)) throw new Error("Invalid OpenRouter provider slug");
 
   let reasoningEffort: Exclude<Preferences["reasoningEffort"], "automatic"> | undefined;
-  if (prefs.reasoningEffort === "automatic") {
+  if (!prefs.reasoningEffort || prefs.reasoningEffort === "automatic") {
     reasoningEffort = model === DEFAULT_MODEL ? "minimal" : undefined;
   } else {
     reasoningEffort = prefs.reasoningEffort;
@@ -175,7 +187,7 @@ async function fixText(prefs: Preferences, text: string): Promise<string> {
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${prefs.openRouterApiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
       "HTTP-Referer": "https://github.com/erikmay/raycast-quick-fix",
       "X-Title": "Raycast Quick Fix",
@@ -198,7 +210,12 @@ async function fixText(prefs: Preferences, text: string): Promise<string> {
     signal: AbortSignal.timeout(45_000),
   });
   const result = (await response.json()) as OpenRouterResponse;
-  if (!response.ok) throw new Error(result.error?.message ?? `OpenRouter returned HTTP ${response.status}`);
+  if (!response.ok) {
+    if (result.error?.message?.includes("No allowed providers are available")) {
+      throw new Error(`No route for ${model} via ${providerSlug}. Check OpenRouter provider and privacy settings`);
+    }
+    throw new Error(result.error?.message ?? `OpenRouter returned HTTP ${response.status}`);
+  }
   if (providerSlug === DEFAULT_PROVIDER_SLUG && result.provider !== "Google AI Studio") {
     throw new Error(`Unexpected inference provider: ${result.provider ?? "unknown"}`);
   }
@@ -211,7 +228,7 @@ async function fixText(prefs: Preferences, text: string): Promise<string> {
   return fixed;
 }
 
-export default async function main() {
+export async function quickFix(autoSubmit: boolean) {
   const prefs = getPreferenceValues<Preferences>();
   const spinner = startSpinner("Quick fixing…");
 
@@ -234,14 +251,20 @@ export default async function main() {
 
     spinner.stop();
     if (fixed === text) {
+      if (autoSubmit) await submit(true);
       await showHUD("✓ Already correct");
       return;
     }
     await Clipboard.paste(fixed);
+    if (autoSubmit) await submit(false);
     await showHUD("✓ Quick fixed");
   } catch (error) {
     spinner.stop();
     const message = error instanceof Error ? error.message : String(error);
     await showHUD(`❌ Quick Fix failed: ${message.slice(0, 120)}`);
   }
+}
+
+export default function main() {
+  return quickFix(false);
 }
