@@ -1,6 +1,38 @@
 # Quick Fix benchmark
 
-The local benchmark used 16 German and English spelling and grammar cases plus four repeated requests. It measured inference from a script, not the full Raycast hotkey-to-paste workflow.
+## 2026-10-30: model comparison with the voice-transcription prompt
+
+The prompt now also cleans up voice transcriptions: it removes filler words and restructures rambling text. This run compared 14 model and provider configurations with that prompt. It used 18 German and English cases, 4 of them unstructured voice transcriptions, and ran each case 3 times. All requests went through OpenRouter with one pinned provider, no fallback, and `data_collection: deny`. Times are full request times from a script, without the Raycast capture and paste steps.
+
+Claude Opus 5.5 graded the first run of each case blind, on a scale of 1 to 10, comparing all candidates side by side. "Quality (voice)" covers only the 4 transcription cases. The quality sample is small (18 outputs per configuration), so differences below about 0.5 points are noise.
+
+| Config | p50 ms | p90 ms | max ms | Errors | URL/emoji fails | Quality (all) | Quality (voice) | $/1k req |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| gpt-oss-120b @groq | 418 | 923 | 1758 | 0/54 | 0 | 7.9 | 6.3 | 0.10 |
+| gpt-oss-120b @cerebras | 458 | 989 | 1756 | 0/54 | 0 | 8.2 | 7.0 | 0.23 |
+| gemini-3.5-flash-lite @ai-studio | 660 | 1046 | 2142 | 0/54 | 0 | 8.1 | 6.8 | 0.22 |
+| gemini-3.1-flash-lite @ai-studio | 700 | 1239 | 1935 | 0/54 | 0 | 8.1 | 7.0 | 0.15 |
+| glm-5.3-flash @fireworks | 928 | 1323 | 1758 | 0/54 | 0 | 8.8 | 7.5 | 0.04 |
+| gpt-5.4-mini @openai/fast | 994 | 1441 | 2274 | 0/54 | 0 | 8.3 | 7.0 | 0.93 |
+| gpt-5.4-nano @openai | 1187 | 1794 | 4030 | 0/54 | 0 | 7.3 | 7.8 | 0.12 |
+| claude-haiku-5.5 @anthropic | 1384 | 2558 | 3541 | 0/54 | 0 | 8.0 | 7.0 | 0.09 |
+| gemini-3.8-flash @vertex/global | 1707 | 3334 | 8729 | 0/54 | 0 | 9.1 | 8.5 | 0.50 |
+| mercury-3 @inception | 1935 | 4790 | 32797 | 0/54 | 1 | 8.0 | 6.3 | 0.36 |
+| gemini-3.8-flash @ai-studio/priority | 1936 | 2710 | 5506 | 0/54 | 0 | 9.3 | 9.0 | 0.94 |
+| qwen3.8-flash @alibaba | 2008 | 6213 | 7461 | 16/54 | 0 | 7.0 | 4.8 | 0.04 |
+| gemini-3.8-flash @ai-studio (current) | 2044 | 2848 | 5633 | 0/54 | 0 | 9.1 | 8.8 | 0.52 |
+
+Mistral Small (`mistral`, `mistral/eu`) returned "Provider returned error" for every request. Gemini 3.8 Flash cannot disable reasoning ("Reasoning is mandatory"). Most of its requests used 0 reasoning tokens at `minimal` effort, but some used up to 400 tokens and took about 5 seconds. Its base latency is about 1.5 to 2 seconds even without reasoning.
+
+Results:
+
+- Gemini 3.8 Flash on Google AI Studio has the best quality, especially for voice transcriptions. It stays the default. The priority tier did not make it meaningfully faster and costs about twice as much.
+- GLM 5.3 Flash on Fireworks (`z-ai/glm-5.3-flash`, provider `fireworks`, reasoning effort `low`) is about twice as fast with a much smaller tail (p90 1.3 s, max 1.8 s). It fixes errors well but often keeps filler words in transcriptions. On Together, the same model was slower (p50 1.0 s, max 2.4 s).
+- GPT-OSS 120B on Groq or Cerebras is the fastest (p50 about 0.4 s). It made more meaning errors, for example it changed "12.000 Euro" and dropped details in transcriptions.
+
+## 2026-10: first benchmark
+
+The first benchmark used 16 German and English spelling and grammar cases plus four repeated requests. It measured inference from a script, not the full Raycast hotkey-to-paste workflow.
 
 | Configuration | Median response | p95 response | Exact outputs | Errors |
 |---|---:|---:|---:|---:|

@@ -21,23 +21,22 @@ interface OpenRouterResponse {
 const DEFAULT_MODEL = "google/gemini-3.8-flash";
 const DEFAULT_PROVIDER_SLUG = "google-ai-studio";
 
-// Raycast's original "fix-spelling-grammar" prompt, extended with
-// preservation rules found necessary during the bilingual evaluation.
-const PROMPT_TEMPLATE = `Act as a spelling corrector and improver. Reply only with the rewritten text and nothing else.
+// Based on Raycast's "fix-spelling-grammar" prompt. Extended to clean up
+// voice transcriptions and with preservation rules from the evaluations.
+const PROMPT_TEMPLATE = `Act as an editor that fixes and polishes the given text. Reply only with the rewritten text and nothing else.
 
 Strictly follow these rules:
 - Correct spelling, grammar and punctuation
 - ALWAYS detect and maintain the original language of the given text
+- The text is often a voice transcription. Remove filler words, false starts, repetitions and self-corrections; keep only what the author finally meant
+- Make the text clear and natural to read: fix run-on sentences, put related thoughts together, and use short paragraphs or a list where that helps
+- Keep the author's voice, tone, perspective and form of address (for example du/Sie); do not make casual text formal
+- Keep every fact, name, number, request and question; never add information, greetings, sign-offs or explanations
+- If the text is already clear and well written, only fix errors; if it is already correct, return it unchanged
 - NEVER surround the rewritten text with quotes
-- Don't replace urls with markdown links
-- Don't change emojis
-- Make the smallest possible edits needed for correctness
-- Do not paraphrase, formalize, translate, or alter typographic style
-- Never replace a correct word or expand a colloquial contraction
+- Don't replace urls with markdown links and don't add other Markdown formatting such as bold text or headings
+- Treat every URL, emoji, code span and technical identifier as an immutable string
 - Correct punctuation around direct quotations without changing quote characters
-- Preserve meaning, tone, and line breaks
-- Treat every URL and emoji as an immutable string
-- If the text is already correct, return it unchanged
 
 Text to rewrite:
 {selection}

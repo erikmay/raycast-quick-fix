@@ -1,6 +1,6 @@
 # Quick Fix (OpenRouter)
 
-Raycast's [Quick Fix](https://manual.raycast.com/new-in-v2) fixes spelling and grammar in selected text with one hotkey. This extension provides the same workflow through a model and provider you choose on OpenRouter. The default is Gemini 3.8 Flash on Google AI Studio.
+Raycast's [Quick Fix](https://manual.raycast.com/new-in-v2) fixes spelling and grammar in selected text with one hotkey. This extension provides the same workflow and also cleans up voice transcriptions: it removes filler words and restructures rambling text. It runs through a model and provider you choose on OpenRouter. The default is Gemini 3.8 Flash on Google AI Studio.
 
 Select text anywhere (or focus an editable text field), then press your hotkey. The corrected text replaces the selection. For a focused field, the command reads its text through macOS accessibility and starts selecting it while the model runs. Apps that do not expose the field use Raycast's selected-text API.
 
