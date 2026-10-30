@@ -20,6 +20,12 @@ function run() {
       }
     }
 
+    // Chromium and Electron apps such as Slack drop line breaks from
+    // AXSelectedText and AXValue. Raycast's copy-based selection API keeps them.
+    if (focused.attributes.name().includes("AXDOMClassList")) {
+      return JSON.stringify({ kind: "unavailable" });
+    }
+
     try {
       const selected = focused.attributes.byName("AXSelectedText").value();
       if (typeof selected === "string" && selected.trim()) {
