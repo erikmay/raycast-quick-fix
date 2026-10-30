@@ -18,8 +18,8 @@ interface OpenRouterResponse {
   error?: { message?: string };
 }
 
-const DEFAULT_MODEL = "google/gemini-3.8-flash";
-const DEFAULT_PROVIDER_SLUG = "google-ai-studio";
+const DEFAULT_MODEL = "openai/gpt-6.1-sol";
+const DEFAULT_PROVIDER_SLUG = "openai/ultrafast";
 
 // Based on Raycast's "fix-spelling-grammar" prompt. Extended to clean up
 // voice transcriptions and with preservation rules from the evaluations.
@@ -177,7 +177,7 @@ async function fixText(prefs: Preferences, text: string): Promise<string> {
   if (!apiKey) throw new Error("Set your OpenRouter API key in Raycast preferences");
   const model = prefs.openRouterModel?.trim() || DEFAULT_MODEL;
   const providerSlug = prefs.providerSlug?.trim() || DEFAULT_PROVIDER_SLUG;
-  if (!/^[a-z0-9-]+$/.test(providerSlug)) throw new Error("Invalid OpenRouter provider slug");
+  if (!/^[a-z0-9-]+(\/[a-z0-9-]+)*$/.test(providerSlug)) throw new Error("Invalid OpenRouter provider slug");
 
   let reasoningEffort: Exclude<Preferences["reasoningEffort"], "automatic"> | undefined;
   if (!prefs.reasoningEffort || prefs.reasoningEffort === "automatic") {
@@ -221,7 +221,7 @@ async function fixText(prefs: Preferences, text: string): Promise<string> {
     }
     throw new Error(result.error?.message ?? `OpenRouter returned HTTP ${response.status}`);
   }
-  if (providerSlug === DEFAULT_PROVIDER_SLUG && result.provider !== "Google AI Studio") {
+  if (providerSlug === DEFAULT_PROVIDER_SLUG && result.provider !== "OpenAI") {
     throw new Error(`Unexpected inference provider: ${result.provider ?? "unknown"}`);
   }
   const choice = result.choices?.[0];

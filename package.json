@@ -1,6 +1,6 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "quick-fix-codex",
+  "name": "quick-fix-openrouter",
   "title": "Quick Fix (OpenRouter)",
   "description": "Fix spelling and grammar of selected text with your chosen OpenRouter model and provider.",
   "icon": "quick-fix-icon.png",
@@ -34,10 +34,10 @@
     {
       "name": "openRouterModel",
       "title": "Model",
-      "description": "OpenRouter model ID, such as google/gemini-3.8-flash. Check openrouter.ai/models for available IDs.",
+      "description": "OpenRouter model ID, such as openai/gpt-6.1-sol. Check openrouter.ai/models for available IDs.",
       "type": "textfield",
-      "placeholder": "google/gemini-3.8-flash",
-      "default": "google/gemini-3.8-flash",
+      "placeholder": "openai/gpt-6.1-sol",
+      "default": "openai/gpt-6.1-sol",
       "required": false
     },
     {
@@ -45,14 +45,14 @@
       "title": "Provider Slug",
       "description": "Allow only this OpenRouter provider. Find its slug on the model's Providers page; requests fail if it cannot serve the model.",
       "type": "textfield",
-      "placeholder": "google-ai-studio",
-      "default": "google-ai-studio",
+      "placeholder": "openai/ultrafast",
+      "default": "openai/ultrafast",
       "required": false
     },
     {
       "name": "reasoningEffort",
       "title": "Reasoning Effort",
-      "description": "Automatic keeps minimal reasoning for the default Gemini model and uses the model's default otherwise.",
+      "description": "Automatic keeps minimal reasoning for the default model and uses the model's default otherwise.",
       "type": "dropdown",
       "default": "automatic",
       "required": false,

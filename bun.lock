@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "quick-fix-codex",
+      "name": "quick-fix-openrouter",
       "dependencies": {
         "@raycast/api": "^2.1.2",
       },
