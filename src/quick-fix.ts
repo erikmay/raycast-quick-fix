@@ -157,9 +157,15 @@ function stripCodeFences(text: string): string {
   return (match?.[1] ?? trimmed).trim();
 }
 
+// Sentence punctuation directly after a URL is not part of it. The model may
+// add a period after a URL that ends a sentence.
+function extractUrls(text: string): string[] {
+  return (text.match(/https?:\/\/[^\s)\]]+/g) ?? []).map((url) => url.replace(/[.,;:!?'"’”]+$/, ""));
+}
+
 function assertPreservedTokens(original: string, fixed: string): void {
-  const urls = original.match(/https?:\/\/[^\s)\]]+/g) ?? [];
-  const fixedUrls = fixed.match(/https?:\/\/[^\s)\]]+/g) ?? [];
+  const urls = extractUrls(original);
+  const fixedUrls = extractUrls(fixed);
   const emojis = original.match(/\p{Extended_Pictographic}/gu) ?? [];
   const fixedEmojis = fixed.match(/\p{Extended_Pictographic}/gu) ?? [];
   if (JSON.stringify(urls) !== JSON.stringify(fixedUrls)) throw new Error("The model changed a URL");
