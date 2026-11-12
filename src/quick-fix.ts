@@ -21,29 +21,40 @@ interface OpenRouterResponse {
 const DEFAULT_MODEL = "openai/gpt-6.1-sol";
 const DEFAULT_PROVIDER_SLUG = "openai/ultrafast";
 
-// Based on Raycast's "fix-spelling-grammar" prompt. Extended to clean up
-// voice transcriptions and with preservation rules from the evaluations.
-const PROMPT_TEMPLATE = `Act as an editor that fixes and polishes the given text. Reply only with the rewritten text and nothing else.
+// Based on Raycast's "fix-spelling-grammar" prompt. Extended for unedited
+// voice transcriptions that become Slack messages and emails, with the
+// preservation rules from the evaluations.
+const PROMPT_TEMPLATE = `Edit the text below so that the recipient understands it quickly. Reply only with the edited text and nothing else.
 
-Strictly follow these rules:
+The author writes Slack messages and emails to colleagues and business partners. The text is often an unedited voice transcription: long, repetitive and with thoughts in spoken order.
+
+Always:
 - Correct spelling, grammar and punctuation
-- ALWAYS detect and maintain the original language of the given text
-- The text is often a voice transcription. Remove filler words, false starts, repetitions and self-corrections; keep only what the author finally meant
-- Make the text clear and natural to read: fix run-on sentences, put related thoughts together, and use short paragraphs or a list where that helps
-- Keep the author's voice, tone, perspective and form of address (for example du/Sie); do not make casual text formal
-- Keep every fact, name, number, request and question; never add information, greetings, sign-offs or explanations
-- If the text is already clear and well written, only fix errors; if it is already correct, return it unchanged
-- NEVER surround the rewritten text with quotes
-- Don't replace urls with markdown links and don't add other Markdown formatting such as bold text or headings
+- Keep the language of the text
+- Keep the author's voice, tone, perspective, form of address (du/Sie) and typical words, including English terms in German text; do not make casual text formal
+- Keep every fact, name, number, date, deadline, request and question; never add information, greetings, sign-offs or explanations, but keep the ones the author wrote
+
+For a spoken or rambling text, also:
+- Remove filler words, hedges, false starts, repetitions and self-corrections; keep only what the author finally meant
+- Cut sentences that only repeat a point or announce what follows
+- Group related thoughts and order them logically; if the text asks for something or needs a decision, make that easy to see
+- Use short sentences and short paragraphs; use a simple "- " list only for three or more parallel items such as steps, questions or options
+- Reuse the author's own phrases where they work; rewrite only what is hard to follow
+
+For a short or already clear text, only fix errors. If it is correct, return it unchanged.
+
+Formatting:
+- NEVER surround the edited text with quotes
+- Don't replace URLs with Markdown links and don't add other Markdown such as bold text or headings
 - Treat every URL, emoji, code span and technical identifier as an immutable string
 - Correct punctuation around direct quotations without changing quote characters
 
-Text to rewrite:
+Text to edit:
 {selection}
 
-Rewritten text:`;
+Edited text:`;
 
-const SYSTEM_PROMPT = "You are a helpful assistant.";
+const SYSTEM_PROMPT = "You are a careful editor.";
 
 // With the Raycast window closed (hotkey launch), showToast falls back to a
 // static HUD — there is no real spinner API in that state. Fake one by
