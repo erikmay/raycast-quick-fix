@@ -25,7 +25,7 @@ const DEFAULT_PROVIDER_SLUG = "openai/ultrafast";
 // voice transcriptions that become Slack messages and emails. The rules on
 // tone words, register and punctuation keep the result from reading as
 // machine-edited; see BENCHMARK.md for the evaluation.
-const PROMPT_TEMPLATE = `Edit the text below so that the recipient understands it quickly and it still reads as if the author typed it. Reply only with the edited text and nothing else.
+const PROMPT_TEMPLATE = `Edit the text below so that the recipient understands it quickly, the author comes across as confident and decisive, and it still reads as if the author typed it. Reply only with the edited text and nothing else.
 
 The author writes Slack messages and emails to colleagues and business partners. The text is often an unedited voice transcription: long, repetitive and with thoughts in spoken order.
 
@@ -33,14 +33,15 @@ Always:
 - Correct spelling, grammar and punctuation, and words the transcription clearly misheard
 - Keep the language of the text
 - Keep the author's voice, perspective, form of address (du/Sie), contractions (hab, fänd's, I'll) and typical words, including English terms in German text; keep the register as casual as it is and never swap a plain word for a more formal one (schauen stays schauen, not prüfen)
-- Keep every fact, name, number, date, deadline, request and question, and keep each statement as strong or as cautious as the author made it: doubts and softeners (ich glaube, ein bisschen, I think, would) and approximations (ungefähr, so, maybe, "like 20" becomes "about 20") stay, and dates stay as said (nächste Woche Donnerstag)
+- Keep every fact, name, number, date, deadline, request and question. Real uncertainty about a fact stays (wahrscheinlich Donnerstag, ich glaube beim dritten Bild), approximations stay approximate (ungefähr, so, "like 20" becomes "about 20"), and dates stay as said (nächste Woche Donnerstag)
+- Write the author's own opinions, assessments, proposals and decisions as clear, direct statements, the way a leader who makes decisions writes. Drop the hedges around them (ich denke, ich glaube, glaube ich, ich würde sagen, ich finde, vielleicht, eigentlich, irgendwie, ein bisschen, nicht so; I think, I guess, maybe, kind of): "Ich denke, rot ist nicht so gut" becomes "Rot ist nicht gut". Stay friendly and polite; do not make it harsh, and add no emphasis the author did not say
 - Never add information, greetings, sign-offs or explanations, but keep the ones the author wrote
 
 For a spoken or rambling text, also:
 - Make it clearly shorter, mainly by cutting: remove filler words (ähm, irgendwie, oder so, sozusagen, basically), false starts, repetitions and self-corrections, and keep only what the author finally meant. Cut a sentence only if it adds nothing; a reason, a doubt or a result stays. Rephrase only a sentence that is hard to follow
 - Group related thoughts and order them logically; if the text asks for something or needs a decision, make that easy to see
 - Write complete sentences from the author's own clauses and connecting words (und, aber, weil, dann, but, because), with verbs instead of noun chains. Let sentence length vary the way it does when a person types: some short, some with two clauses joined by a connecting word. No comma splices
-- In a casual message, keep one or two of the small words that carry the tone (ehrlich gesagt, eigentlich, halt, mal, schon, honestly) where they matter most, and remove the rest; none of them in a Sie email
+- In a casual message, keep one or two of the small words that make it sound spoken (mal, schon, ja, echt, halt, honestly) where they fit, and remove the rest; none of them in a Sie email
 - Slack message: one or two paragraphs, a new paragraph only where the topic really changes. Email: greeting line, a few short body paragraphs, then the sign-off and name on their own lines (German sign-off without a comma)
 - Only three or more parallel steps, questions or options may become a "- " list, with short items in the author's words and no period at the end; two points stay in running text
 

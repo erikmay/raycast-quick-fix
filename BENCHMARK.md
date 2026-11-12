@@ -1,5 +1,9 @@
 # Quick Fix benchmark
 
+## 2026-11-12: confident, direct statements
+
+After the run below, the author asked for a more confident and decisive style. The prompt no longer keeps hedges around the author's own opinions, proposals and decisions (ich denke, glaube ich, vielleicht, ein bisschen): "Ich denke, rot ist nicht so gut" becomes "Rot ist nicht gut". Real uncertainty about a fact, approximations and dates still stay. This replaces the rule "keep each statement as strong or as cautious as the author made it", so the "facts and nuance" score below no longer describes the default. On 18 cases in three runs there were no errors, long dictations shrank by about 24%, and median latency was 1.3 to 1.4 s. This change was checked by reading the outputs, not by blind judges.
+
 ## 2026-11-12: prompt for human-sounding results
 
 The earlier prompt made dictated text short and clear, but the result read as machine-edited. This run looked for a prompt that keeps the author's tone without adding errors. Three expert agents (German business writing, AI-text tells, prompt engineering) each wrote and tested a candidate. A final candidate combined the two best ones. All ran on 15 German and English cases (10 long dictations, 5 short texts) with GPT-6.1 Sol on `openai/ultrafast`. Judges were Claude agents that saw the versions blind, with shuffled labels.
