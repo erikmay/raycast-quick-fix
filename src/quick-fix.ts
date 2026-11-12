@@ -22,32 +22,35 @@ const DEFAULT_MODEL = "openai/gpt-6.1-sol";
 const DEFAULT_PROVIDER_SLUG = "openai/ultrafast";
 
 // Based on Raycast's "fix-spelling-grammar" prompt. Extended for unedited
-// voice transcriptions that become Slack messages and emails, with the
-// preservation rules from the evaluations.
-const PROMPT_TEMPLATE = `Edit the text below so that the recipient understands it quickly. Reply only with the edited text and nothing else.
+// voice transcriptions that become Slack messages and emails. The rules on
+// tone words, register and punctuation keep the result from reading as
+// machine-edited; see BENCHMARK.md for the evaluation.
+const PROMPT_TEMPLATE = `Edit the text below so that the recipient understands it quickly and it still reads as if the author typed it. Reply only with the edited text and nothing else.
 
 The author writes Slack messages and emails to colleagues and business partners. The text is often an unedited voice transcription: long, repetitive and with thoughts in spoken order.
 
 Always:
-- Correct spelling, grammar and punctuation
+- Correct spelling, grammar and punctuation, and words the transcription clearly misheard
 - Keep the language of the text
-- Keep the author's voice, tone, perspective, form of address (du/Sie) and typical words, including English terms in German text; do not make casual text formal
-- Keep every fact, name, number, date, deadline, request and question; never add information, greetings, sign-offs or explanations, but keep the ones the author wrote
+- Keep the author's voice, perspective, form of address (du/Sie), contractions (hab, fänd's, I'll) and typical words, including English terms in German text; keep the register as casual as it is and never swap a plain word for a more formal one (schauen stays schauen, not prüfen)
+- Keep every fact, name, number, date, deadline, request and question, and keep each statement as strong or as cautious as the author made it: doubts and softeners (ich glaube, ein bisschen, I think, would) and approximations (ungefähr, so, maybe, "like 20" becomes "about 20") stay, and dates stay as said (nächste Woche Donnerstag)
+- Never add information, greetings, sign-offs or explanations, but keep the ones the author wrote
 
 For a spoken or rambling text, also:
-- Remove filler words, hedges, false starts, repetitions and self-corrections; keep only what the author finally meant
-- Cut sentences that only repeat a point or announce what follows
+- Make it clearly shorter, mainly by cutting: remove filler words (ähm, irgendwie, oder so, sozusagen, basically), false starts, repetitions and self-corrections, and keep only what the author finally meant. Cut a sentence only if it adds nothing; a reason, a doubt or a result stays. Rephrase only a sentence that is hard to follow
 - Group related thoughts and order them logically; if the text asks for something or needs a decision, make that easy to see
-- Use short sentences and short paragraphs; use a simple "- " list only for three or more parallel items such as steps, questions or options
-- Reuse the author's own phrases where they work; rewrite only what is hard to follow
+- Write complete sentences from the author's own clauses and connecting words (und, aber, weil, dann, but, because), with verbs instead of noun chains. Let sentence length vary the way it does when a person types: some short, some with two clauses joined by a connecting word. No comma splices
+- In a casual message, keep one or two of the small words that carry the tone (ehrlich gesagt, eigentlich, halt, mal, schon, honestly) where they matter most, and remove the rest; none of them in a Sie email
+- Slack message: one or two paragraphs, a new paragraph only where the topic really changes. Email: greeting line, a few short body paragraphs, then the sign-off and name on their own lines (German sign-off without a comma)
+- Only three or more parallel steps, questions or options may become a "- " list, with short items in the author's words and no period at the end; two points stay in running text
 
 For a short or already clear text, only fix errors. If it is correct, return it unchanged.
 
-Formatting:
+Punctuation and formatting:
+- Plain keyboard punctuation as the author would type it: commas, periods, question marks, straight ' and ". Join thoughts with words, not with colons, dashes or semicolons; a colon belongs only directly before a list. Keep the author's sentence-end marks and add no exclamation marks
 - NEVER surround the edited text with quotes
 - Don't replace URLs with Markdown links and don't add other Markdown such as bold text or headings
 - Treat every URL, emoji, code span and technical identifier as an immutable string
-- Correct punctuation around direct quotations without changing quote characters
 
 Text to edit:
 {selection}

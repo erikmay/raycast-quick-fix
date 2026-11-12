@@ -1,5 +1,26 @@
 # Quick Fix benchmark
 
+## 2026-11-12: prompt for human-sounding results
+
+The earlier prompt made dictated text short and clear, but the result read as machine-edited. This run looked for a prompt that keeps the author's tone without adding errors. Three expert agents (German business writing, AI-text tells, prompt engineering) each wrote and tested a candidate. A final candidate combined the two best ones. All ran on 15 German and English cases (10 long dictations, 5 short texts) with GPT-6.1 Sol on `openai/ultrafast`. Judges were Claude agents that saw the versions blind, with shuffled labels.
+
+Signs of machine editing in the old outputs: colons that join clauses, removed tone words and softeners ("ehrlich gesagt ... ein bisschen skeptisch" became "Ich bin da skeptisch"), plain words swapped for formal ones, approximations made exact, uniform two-sentence paragraphs, list items as full sentences, typographic apostrophes, and a comma after "Viele Grüße".
+
+Final round, one blind judge, scale 1 to 10:
+
+| Prompt | Human | Easy to digest | Facts and nuance kept | Best in case | Output/input, long cases |
+|---|---:|---:|---:|---:|---:|
+| Previous prompt | 6.3 | 8.7 | 7.9 | 1 | 0.77 |
+| German-editor candidate | 8.1 | 7.9 | 9.5 | 5 | 0.84 |
+| AI-tells candidate | 7.8 | 8.3 | 8.6 | 1 | 0.78 |
+| Final (now the default) | 8.2 | 8.5 | 9.2 | 6 | 0.83 |
+
+A first round with three blind judges and five prompts gave the same order for the previous prompt and the two expert candidates. The new prompt shortens long dictations by about 17% (before: 23%), because it keeps doubts, reasons and softeners. Median latency stayed at 1.3 to 1.5 s. Colon connectors, typographic apostrophes, dashes and semicolons fell to 0 in all runs.
+
+What worked: positive rules ("join thoughts with words", "let sentence length vary") changed rhythm and tone more reliably than ban lists; a limit on tone words ("keep one or two") holds the line between human and rambling; "keep each statement as strong or as cautious as the author made it" protects softeners. What did not work: a before/after example (the model copied its compression level and dropped content) and a total colon ban (it caused comma splices).
+
+The sample is small and model output varies between runs. Known weak points: a short all-lowercase chat reply still gets normal capitals and periods, and tone words land in different places from run to run.
+
 ## 2026-10-30: OpenAI GPT-6 models and priority tiers
 
 A second run used the same prompt, cases, and method for OpenAI's GPT-6 models on the `openai/fast` and `openai/ultrafast` tiers. Gemini 3.8 Flash and GLM 5.3 Flash ran at the same time again for comparison. Claude Opus 5.5 graded these 8 configurations side by side, so the scores are comparable within this table but not exactly with the first table. Sol and Astra require reasoning and ran with `minimal` effort; the other GPT-6 models ran with `none`.
