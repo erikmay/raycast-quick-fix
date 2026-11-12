@@ -10,11 +10,11 @@
 type ExtensionPreferences = {
   /** OpenRouter API Key - Used to send text to your selected model and provider through OpenRouter. */
   "openRouterApiKey": string,
-  /** Model - OpenRouter model ID, such as google/gemini-3.8-flash. Check openrouter.ai/models for available IDs. */
+  /** Model - OpenRouter model ID, such as openai/gpt-6.1-sol. Check openrouter.ai/models for available IDs. */
   "openRouterModel": string,
   /** Provider Slug - Allow only this OpenRouter provider. Find its slug on the model's Providers page; requests fail if it cannot serve the model. */
   "providerSlug": string,
-  /** Reasoning Effort - Automatic keeps minimal reasoning for the default Gemini model and uses the model's default otherwise. */
+  /** Reasoning Effort - Automatic keeps minimal reasoning for the default model and uses the model's default otherwise. */
   "reasoningEffort": "automatic" | "minimal" | "low" | "medium" | "high"
 }
 

@@ -1,14 +1,16 @@
 {
   "compilerOptions": {
     "lib": ["ES2023"],
-    "module": "commonjs",
+    "types": ["node"],
+    "module": "preserve",
     "target": "ES2022",
     "strict": true,
     "isolatedModules": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "noEmit": true
   },
   "include": ["src/**/*"]
 }
